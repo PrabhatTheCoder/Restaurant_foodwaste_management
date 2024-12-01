@@ -25,7 +25,7 @@ class Transaction(models.Model):
     food_item_name = models.CharField(max_length=255, help_text="Name of the sold food item")
     quantity = models.FloatField(help_text="Quantity sold (kg or units)")
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total price")
-    transaction_id = models.CharField(max_length=100, unique=True, help_text="Payment Gateway Transaction ID")
+    payment_id = models.CharField(max_length=100, unique=True, help_text="Payment Gateway Transaction ID")
     order_id = models.CharField(max_length=100, unique=True, help_text="Payment Gateway Order ID")
     signature = models.CharField(max_length=100, unique=True, help_text="Payment Gateway signature ID")
     payment_method = models.CharField(
