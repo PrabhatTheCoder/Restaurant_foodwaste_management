@@ -19,6 +19,6 @@ class BuyProductSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Transaction
-        fields = ['id','buyer','order_id','transaction_id ','signature','seller','food_item_id','food_item_name','quantity','amount','transaction_id','status']
+        fields = ['id','buyer','order_id','payment_id','signature','seller','food_item_id','food_item_name','quantity','amount','status']
 
         
