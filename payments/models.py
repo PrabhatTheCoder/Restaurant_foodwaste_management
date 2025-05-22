@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.timezone import now
 import razorpay
+from django.db import models, transaction
+from django.core.exceptions import ValidationError
 
 class Transaction(models.Model):
     TRANSACTION_STATUS = [
@@ -21,7 +23,7 @@ class Transaction(models.Model):
         ],
         help_text="Type of food item being sold"
     )
-    food_item_id = models.PositiveIntegerField(help_text="ID of the sold food item")
+    food_item_id = models.CharField(max_length=255, help_text="Name of the sold food item")
     food_item_name = models.CharField(max_length=255, help_text="Name of the sold food item")
     quantity = models.FloatField(help_text="Quantity sold (kg or units)")
     amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total price")
@@ -33,11 +35,32 @@ class Transaction(models.Model):
         choices=[('upi', 'UPI'), ('paypal', 'PayPal'), ('card', 'Credit/Debit Card')],
         help_text="Payment method used"
     )
-    status = models.CharField(max_length=50, choices=TRANSACTION_STATUS, default='pending', help_text="Transaction status")
+    status = models.CharField(max_length=50, choices=TRANSACTION_STATUS, default='completed', help_text="Transaction status", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.food_item_name} sold by {self.seller.name} to {self.buyer.name}"
+        return f"{self.food_item_name} sold by {self.seller.email} to {self.buyer.email}"
+    
+    def save(self, *args, **kwargs):
+        from stock.models import RestaurantMenu  # Assuming the menu item model is in `restaurant.models`
+
+        if self.food_item_type == 'restaurant_menu':
+            try:
+                with transaction.atomic():
+                    menu_item = RestaurantMenu.objects.select_for_update().get(id=self.food_item_id)
+                    if menu_item.weight < self.quantity:
+                        raise ValidationError(f"Not enough stock for {menu_item.name}. Available: {menu_item.weight}, Requested: {self.quantity}")
+                    menu_item.weight -= self.quantity
+                    menu_item.save()
+            except RestaurantMenu.DoesNotExist:
+                raise ValidationError(f"Menu item with ID {self.food_item_id} does not exist.")
+            except ValidationError as e:
+                raise e
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.food_item_name} sold by {self.seller.email} to {self.buyer.email}"
 
 
 

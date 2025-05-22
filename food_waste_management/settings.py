@@ -48,9 +48,6 @@ INSTALLED_APPS = [
     'users',
     'social_django',  # For OAuth
     'corsheaders',
-
-    # 'django.contrib.gis',
-
 ]
 
 AUTHENTICATION_BACKENDS = (
@@ -61,6 +58,7 @@ AUTHENTICATION_BACKENDS = (
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -119,17 +117,11 @@ environ.Env.read_env()
 
 from decouple import config
 
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': config('DATABASE_NAME'),  # The name of your database
-        'USER': config('POSTGRES_USER'),  # The database user
-        'PASSWORD': config('POSTGRES_PASSWORD'),  # The user's password
-        'HOST': config('POSTGRES_HOST', default='127.0.0.1'),  # The host address
-        'PORT': config('POSTGRES_PORT', default='5432'),  # The port number
-        'OPTIONS': {
-            'sslmode': config('POSTGRES_SSLMODE', default='require'),  # SSL mode
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -149,7 +141,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=50),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -216,8 +208,8 @@ RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", default='hIx8ODIuaEJ
 
 # settings.py
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '148344843772-8rsp9ja95rt6oe6733pfstbn1r58tmcs.apps.googleusercontent.com'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # Set True if using HTTPS
 
 
@@ -264,3 +256,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

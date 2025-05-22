@@ -38,3 +38,44 @@ class OAuthLoginView(APIView):
             return Response({'error': f"Authentication error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.permissions import AllowAny
+from .models import Client, AppUser
+
+class ClientTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['role'] = 'client'
+        token['email'] = user.email
+        return token
+
+class ClientTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
+    serializer_class = ClientTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        request.data['username_field'] = 'email'  # Specify email as the username field
+        return super().post(request, *args, **kwargs)
+
+
+class AppUserTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['role'] = 'app_user'
+        token['email'] = user.email
+        return token
+
+class AppUserTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
+    serializer_class = AppUserTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        request.data['username_field'] = 'email'  # Specify email as the username field
+        return super().post(request, *args, **kwargs)

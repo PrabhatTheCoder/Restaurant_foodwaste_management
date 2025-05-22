@@ -39,9 +39,14 @@ class CreateOrderAPIView(APIView):
     
 
 class TransactionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
+        user = request.user
+        request.data['buyer'] = user.id
+        request.data['amount'] = request.data['amount'] / 100
         transaction_serializer = BuyProductSerializer(data=request.data)
+        print("transaction_serializer",transaction_serializer)
 
         if transaction_serializer.is_valid():
             rz_client.verify_payment(

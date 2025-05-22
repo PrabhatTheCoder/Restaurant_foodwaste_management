@@ -34,6 +34,7 @@ class CustomUserManager(BaseUserManager):
 
 class Client(AbstractUser):
     id = models.AutoField(primary_key=True)
+    username = None  # Remove the username field
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
@@ -42,10 +43,6 @@ class Client(AbstractUser):
         help_text="Unique OAuth ID for authentication (Google, Facebook, etc.)"
     )
     address = models.TextField(help_text="Full address of the client")
-#     location = PointField(
-#         help_text="Geographical location (latitude, longitude)",
-#         null=True, blank=True
-#     )
     is_active = models.BooleanField(default=True, help_text="Is the client currently active?")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -88,8 +85,9 @@ class Client(AbstractUser):
         help_text="Specific permissions for this client.",
     )
 
-    def __str__(self):
-        return self.name
+    class Meta:
+        verbose_name = "Client"
+        verbose_name_plural = "Clients"
 
 #     def set_location(self, latitude, longitude):
 #         """Set location using latitude and longitude."""
@@ -165,4 +163,9 @@ class AppUser(AbstractUser):
 #             ).annotate(distance=Distance('location', self.location)).order_by('distance')
 #             return nearby_clients
 #         return None
+
+
+    class Meta:
+        verbose_name = "App User"
+        verbose_name_plural = "App Users"
 

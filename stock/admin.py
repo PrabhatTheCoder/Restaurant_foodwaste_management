@@ -15,3 +15,14 @@ class RawMaterialAdmin(admin.ModelAdmin):
         if not obj.pk:  # Only set client on creation
             obj.client = request.user
         super().save_model(request, obj, form, change)
+
+
+from django.contrib import admin
+from .models import RestaurantMenu
+
+@admin.register(RestaurantMenu)
+class RestaurantMenuAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'price_per_serving', 'serving_size', 'total_weight', 'client', 'donate', 'is_wasted', 'created_at', 'expired_at')
+    
+    search_fields = ('name', 'client__name')
+

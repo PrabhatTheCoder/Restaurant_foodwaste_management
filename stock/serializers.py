@@ -12,7 +12,7 @@ class RawMaterialSerializer(serializers.ModelSerializer):
 class ListRawMaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = RawMaterial
-        fields = ['id','name','image','weight','expired_at']
+        fields = '__all__'
         
         
 class MenuSerializer(serializers.ModelSerializer):
@@ -64,10 +64,20 @@ class DonationSerializer(serializers.ModelSerializer):
     
 from payments.models import Transaction
 
-class BuyRestaurantMenuSerializer(serializers.ModelSerializer):
+class SellRestaurantMenuByClientSerializer(serializers.ModelSerializer):
     
     class Meta:
-        model = Transaction
-        fields = ['id','buyer','seller','food_item_id','food_item_name','quantity','price','transaction_id','status']
+        model = RestaurantMenu
+        fields = ['id','name','price_per_serving','serving_size','total_weight']
         
-
+class RestaurantTransactionHistorySerializer(serializers.ModelSerializer):
+    buyer_username = serializers.CharField(source='buyer.username', read_only=True)
+    class Meta:
+        model = Transaction
+        fields = '__all__'
+        
+class AppUserTransactionHistorySerializer(serializers.ModelSerializer):
+    seller_username = serializers.CharField(source='seller.username', read_only=True)
+    class Meta:
+        model = Transaction
+        fields = '__all__'
