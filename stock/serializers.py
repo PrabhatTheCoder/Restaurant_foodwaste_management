@@ -1,6 +1,8 @@
 from datetime import timedelta
 from rest_framework import serializers
 from .models import RawMaterial, RestaurantMenu
+from .utils import generate_presigned_media_url
+
 
 
 class RawMaterialSerializer(serializers.ModelSerializer):
@@ -21,15 +23,27 @@ class MenuSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class NewMenuSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = RestaurantMenu
-        fields = ['name','image','price_per_serving','serving_size','total_weight','client']
+        fields = ['name','image','price_per_serving','serving_size','total_weight','client','image_url']
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            return generate_presigned_media_url(obj.image.name)
+        return None
     
         
 class ListMenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantMenu
         fields = ['id','name','price_per_serving','image','total_weight','expired_at']
+        
+    def get_image_url(self, obj):
+        if obj.image:
+            return generate_presigned_media_url(obj.image.name)
+        return None
 
     
 class DonateRestaurantMenuSerializer(serializers.ModelSerializer):

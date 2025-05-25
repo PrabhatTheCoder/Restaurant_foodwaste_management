@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'users',
     'social_django',  # For OAuth
     'corsheaders',
+    'storages'
 ]
 
 AUTHENTICATION_BACKENDS = (
@@ -57,6 +58,7 @@ AUTHENTICATION_BACKENDS = (
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -106,16 +108,6 @@ WSGI_APPLICATION = 'food_waste_management.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-
-import environ
-
-# Initialize environment variables
-env = environ.Env()
-environ.Env.read_env() 
-
-
-from decouple import config
 
 
 DATABASES = {
@@ -193,7 +185,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+
 
 AUTH_USER_MODEL = 'users.Client'
 
@@ -210,7 +202,7 @@ RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", default='hIx8ODIuaEJ
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = False  # Set True if using HTTPS
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = False 
 
 
 # settings.py
@@ -249,14 +241,40 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 ]
 
 
-# 148344843772-8rsp9ja95rt6oe6733pfstbn1r58tmcs.apps.googleusercontent.com
-# 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
-
-
-
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-south-1')
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False
+
+
+
+STORAGES = {
+    "default": {
+        "BACKEND": "food_waste_management.storage_backends.MediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "food_waste_management.storage_backends.StaticStorage",
+    },
+}
+
+# Optional: If using collectstatic and want to serve static via S3
+STATIC_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/static/"
+MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/media/"
+
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+print("AWS Region :",AWS_S3_REGION_NAME)
+print("HII")

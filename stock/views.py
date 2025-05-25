@@ -22,7 +22,8 @@ class MenuApiView(APIView):
         serializer = NewMenuSerializer(data=request.data)
         if serializer.is_valid():
             menu_instance = serializer.save()  # Save the object
-            return Response({'id': menu_instance.id}, status=status.HTTP_201_CREATED)  # Return the ID from the saved instance
+            response_serializer = NewMenuSerializer(menu_instance)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED) # Return the ID from the saved instance
         else:
             return Response("Error in saving Data",status=status.HTTP_400_BAD_REQUEST)
         

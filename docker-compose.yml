@@ -4,22 +4,26 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: waste_management
     env_file: .env
-    command: sh entrypoint.sh
-    ports:
-      - "8000:8000"
     volumes:
       - .:/food_waste_management
-      - ./media:/food_waste_management/media  # Map host's media folder to container
-
+    expose:
+      - "8000"
     depends_on:
       - db
       - redis
-    links:
-      - redis
-      - db
+
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
 
   db:
     image: postgres:15
@@ -39,14 +43,11 @@ services:
   celery:
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: celery_worker
     env_file: .env
     command: celery -A food_waste_management worker --loglevel=info
     volumes:
       - .:/food_waste_management
-      - ./media:/food_waste_management/media  # Make sure celery can access the media folder too
-
     depends_on:
       - redis
       - db
@@ -54,14 +55,11 @@ services:
   celery-beat:
     build:
       context: .
-      dockerfile: Dockerfile
     container_name: celery_beat
     env_file: .env
     command: celery -A food_waste_management beat --loglevel=info
     volumes:
       - .:/food_waste_management
-      - ./media:/food_waste_management/media  # Ensure celery-beat can access media folder
-
     depends_on:
       - redis
       - db
