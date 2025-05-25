@@ -23,11 +23,11 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build docker images
-        run: docker-compose build
+        run: docker compose build
 
       - name: Run migrations and tests inside container
         run: |
-          docker-compose run --rm web sh -c "python manage.py migrate --noinput && python manage.py test"
+          docker compose run --rm web sh -c "python manage.py migrate --noinput && python manage.py test"
 
   deploy:
     needs: test
