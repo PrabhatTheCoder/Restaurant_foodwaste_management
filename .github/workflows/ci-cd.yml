@@ -42,7 +42,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ap-south-1
 
       - name: Zip source code for deployment
         run: zip -r deploy.zip .
@@ -53,7 +53,7 @@ jobs:
 
       - name: Initialize EB application
         run: |
-          eb init ${{ secrets.EB_APP_NAME }} --platform "Docker" --region ${{ secrets.AWS_REGION }}
+          eb init ${{ secrets.EB_APP_NAME }} --platform "Docker" --region ap-south-1
 
       - name: Select EB environment
         run: |
