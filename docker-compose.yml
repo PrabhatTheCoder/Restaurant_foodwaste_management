@@ -1,19 +1,14 @@
-version: '3.8'
-
 services:
   web:
     build:
       context: .
     container_name: waste_management
-    env_file: .env
     volumes:
       - .:/food_waste_management
     expose:
       - "8000"
     depends_on:
-      - db
       - redis
-
 
   nginx:
     image: nginx:latest
@@ -25,15 +20,6 @@ services:
     depends_on:
       - web
 
-  db:
-    image: postgres:15
-    container_name: postgres_waste_management
-    env_file: .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
   redis:
     image: redis:7
     container_name: redis_food_waste_management
@@ -44,25 +30,18 @@ services:
     build:
       context: .
     container_name: celery_worker
-    env_file: .env
     command: celery -A food_waste_management worker --loglevel=info
     volumes:
       - .:/food_waste_management
     depends_on:
       - redis
-      - db
 
   celery-beat:
     build:
       context: .
     container_name: celery_beat
-    env_file: .env
     command: celery -A food_waste_management beat --loglevel=info
     volumes:
       - .:/food_waste_management
     depends_on:
       - redis
-      - db
-
-volumes:
-  postgres_data:
