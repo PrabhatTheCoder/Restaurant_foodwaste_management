@@ -28,6 +28,7 @@ class NewMenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = RestaurantMenu
         fields = ['name','image','price_per_serving','serving_size','total_weight','client','image_url']
+        read_only_fields = ['image_url']
     
     def get_image_url(self, obj):
         if obj.image:
