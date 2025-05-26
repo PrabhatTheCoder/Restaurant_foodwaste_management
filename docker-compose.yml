@@ -5,6 +5,8 @@ services:
     container_name: waste_management
     volumes:
       - .:/food_waste_management
+    env_file:
+      - .env
     expose:
       - "8000"
     depends_on:
