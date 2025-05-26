@@ -17,3 +17,6 @@ EOL
 *.sqlite
 *.db
 *.db3
+
+.env
+*.env
