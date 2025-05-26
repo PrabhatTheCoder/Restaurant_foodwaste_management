@@ -20,3 +20,4 @@ EOL
 
 .env
 *.env
+.elasticbeanstalk/
