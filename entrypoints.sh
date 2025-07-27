@@ -10,4 +10,4 @@ echo "📁 Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "🚀 Starting Gunicorn server..."
-exec gunicorn food_waste_management.wsgi:application --bind 0.0.0.0:80
+exec gunicorn food_waste_management.wsgi:application --bind 0.0.0.0:8080
