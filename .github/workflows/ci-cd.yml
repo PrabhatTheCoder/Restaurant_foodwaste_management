@@ -24,7 +24,6 @@ jobs:
       - name: Install Docker Compose
         run: sudo apt-get update && sudo apt-get install -y docker-compose
 
-      # Build Docker with secrets injected
       - name: Build Docker images
         run: docker-compose build
         env:
@@ -47,7 +46,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-
   # ============================
   # 2. DEPLOY JOB
   # ============================
@@ -67,7 +65,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # -------- Sync GitHub Secrets → EB Env Vars --------
+      # -------- Update EB Environment Variables --------
       - name: Update EB environment variables
         run: |
           aws elasticbeanstalk update-environment \
@@ -79,30 +77,7 @@ jobs:
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=POSTGRES_PASSWORD,Value=${{ secrets.POSTGRES_PASSWORD }} \
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=DATABASE_NAME,Value=${{ secrets.DATABASE_NAME }}
 
-      - name: Wait for EB to be Ready after env update
-        run: |
-          STATUS=$(aws elasticbeanstalk describe-environments \
-            --environment-names ${{ secrets.EB_ENV_NAME }} \
-            --query "Environments[0].Status" \
-            --output text)
-          while [ "$STATUS" != "Ready" ]; do
-            echo "Waiting for EB Ready after env update... Current: $STATUS"
-            sleep 20
-            STATUS=$(aws elasticbeanstalk describe-environments \
-              --environment-names ${{ secrets.EB_ENV_NAME }} \
-              --query "Environments[0].Status" \
-              --output text)
-          done
-          echo "EB Ready after env update."
-      
-      - name: Deploy to Elastic Beanstalk
-        run: eb deploy
-
-
-      # -------- Deploy application --------
-      - name: Zip source code
-        run: zip -r deploy.zip .
-
+      # -------- Initialize EB CLI and Deploy --------
       - name: Install EB CLI
         run: |
           pip install --upgrade pip
@@ -111,9 +86,6 @@ jobs:
       - name: Initialize EB application
         run: |
           eb init ${{ secrets.EB_APP_NAME }} --platform "Docker" --region ap-south-1
-
-      - name: Select EB environment
-        run: |
           eb use ${{ secrets.EB_ENV_NAME }}
 
       - name: Deploy to Elastic Beanstalk
