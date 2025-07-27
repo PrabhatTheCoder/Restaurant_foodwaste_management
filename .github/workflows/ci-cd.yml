@@ -7,9 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  # ---------------------------
-  # 1. TEST JOB (CI)
-  # ---------------------------
+  # ============================
+  # 1. TEST JOB
+  # ============================
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -24,7 +24,8 @@ jobs:
       - name: Install Docker Compose
         run: sudo apt-get update && sudo apt-get install -y docker-compose
 
-      - name: Build Docker images with secrets
+      # Build Docker with secrets injected
+      - name: Build Docker images
         run: |
           POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
@@ -33,6 +34,7 @@ jobs:
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }} \
           docker-compose build
 
+      # Run migrations and tests
       - name: Run migrations and tests
         run: |
           POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
@@ -42,9 +44,9 @@ jobs:
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }} \
           docker-compose run --rm web sh -c "python manage.py migrate --noinput && python manage.py test"
 
-  # ---------------------------
-  # 2. DEPLOY JOB (CD)
-  # ---------------------------
+  # ============================
+  # 2. DEPLOY JOB
+  # ============================
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -61,7 +63,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # Update EB environment variables
+      # -------- Sync GitHub Secrets → EB Env Vars --------
       - name: Update EB environment variables
         run: |
           aws elasticbeanstalk update-environment \
@@ -73,6 +75,37 @@ jobs:
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=POSTGRES_PASSWORD,Value=${{ secrets.POSTGRES_PASSWORD }} \
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=DATABASE_NAME,Value=${{ secrets.DATABASE_NAME }}
 
+      # -------- Wait until EB is Ready (avoid race condition) --------
+      - name: Wait for EB to be Ready
+        run: |
+          echo "Waiting for EB environment to become Ready..."
+          STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names ${{ secrets.EB_ENV_NAME }} \
+            --query "Environments[0].Status" \
+            --output text)
+
+          TIMEOUT=600  # 10 min max
+          ELAPSED=0
+          INTERVAL=20
+
+          while [ "$STATUS" != "Ready" ] && [ $ELAPSED -lt $TIMEOUT ]; do
+            echo "Current status: $STATUS. Retrying in $INTERVAL sec..."
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+            STATUS=$(aws elasticbeanstalk describe-environments \
+              --environment-names ${{ secrets.EB_ENV_NAME }} \
+              --query "Environments[0].Status" \
+              --output text)
+          done
+
+          if [ "$STATUS" != "Ready" ]; then
+            echo "ERROR: EB not ready after $TIMEOUT seconds"
+            exit 1
+          fi
+
+          echo "EB is Ready. Proceeding with deploy."
+
+      # -------- Deploy application --------
       - name: Zip source code
         run: zip -r deploy.zip .
 
