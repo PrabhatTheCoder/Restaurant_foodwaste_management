@@ -1,14 +1,22 @@
 services:
   web:
-    build:
-      context: .
-    container_name: waste_management
-    volumes:
-      - .:/food_waste_management
-    expose:
-      - "8000"
-    depends_on:
-      - redis
+  build:
+    context: .
+  container_name: waste_management
+  env_file:
+    - .env  # local dev
+  environment:
+    AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME}
+    AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME}
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    DATABASE_NAME: ${DATABASE_NAME}
+  volumes:
+    - .:/food_waste_management
+  expose:
+    - "8000"
+  depends_on:
+    - redis
 
   nginx:
     image: nginx:latest
