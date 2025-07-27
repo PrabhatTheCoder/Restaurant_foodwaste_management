@@ -7,6 +7,9 @@ on:
     branches: [main]
 
 jobs:
+  # ---------------------------
+  # 1. TEST JOB (Continuous Integration)
+  # ---------------------------
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -28,8 +31,8 @@ jobs:
       - name: Install Docker Compose
         run: sudo apt-get update && sudo apt-get install -y docker-compose
 
-      # Pass secrets to docker-compose for build/test
-      - name: Build docker images
+      # Build docker images with secrets
+      - name: Build Docker images
         run: |
           POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
@@ -38,6 +41,7 @@ jobs:
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }} \
           docker-compose build
 
+      # Run migrations and tests inside docker
       - name: Run migrations and tests
         run: |
           POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
@@ -47,6 +51,9 @@ jobs:
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }} \
           docker-compose run --rm web sh -c "python manage.py migrate --noinput && python manage.py test"
 
+  # ---------------------------
+  # 2. DEPLOY JOB (Continuous Deployment)
+  # ---------------------------
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -56,6 +63,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -75,22 +83,56 @@ jobs:
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=POSTGRES_PASSWORD,Value=${{ secrets.POSTGRES_PASSWORD }} \
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=DATABASE_NAME,Value=${{ secrets.DATABASE_NAME }}
 
-      - name: Zip source code for deployment
+      # Wait for EB environment to become Ready
+      - name: Wait for EB environment to be Ready
+        run: |
+          echo "Checking EB environment status..."
+          STATUS=$(aws elasticbeanstalk describe-environments \
+            --environment-names ${{ secrets.EB_ENV_NAME }} \
+            --query "Environments[0].Status" \
+            --output text)
+
+          TIMEOUT=900  # 15 minutes max
+          ELAPSED=0
+          INTERVAL=30
+
+          while [ "$STATUS" != "Ready" ] && [ $ELAPSED -lt $TIMEOUT ]; do
+            echo "Current EB status: $STATUS. Waiting $INTERVAL seconds..."
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+            STATUS=$(aws elasticbeanstalk describe-environments \
+              --environment-names ${{ secrets.EB_ENV_NAME }} \
+              --query "Environments[0].Status" \
+              --output text)
+          done
+
+          if [ "$STATUS" != "Ready" ]; then
+            echo "ERROR: EB environment not ready after $TIMEOUT seconds."
+            exit 1
+          fi
+
+          echo "EB environment is Ready. Proceeding with deploy."
+
+      # Zip source code for deployment
+      - name: Zip source code
         run: zip -r deploy.zip .
 
+      # Install EB CLI
       - name: Install EB CLI
         run: |
           pip install --upgrade pip
           pip install awsebcli
 
+      # Initialize EB application
       - name: Initialize EB application
         run: |
           eb init ${{ secrets.EB_APP_NAME }} --platform "Docker" --region ap-south-1
 
+      # Select EB environment
       - name: Select EB environment
         run: |
           eb use ${{ secrets.EB_ENV_NAME }}
 
+      # Deploy to EB
       - name: Deploy to Elastic Beanstalk
-        run: |
-          eb deploy
+        run: eb deploy
