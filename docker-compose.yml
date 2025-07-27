@@ -3,8 +3,8 @@ services:
     build:
       context: .
     container_name: waste_management
-    env_file:
-      - .env  # local dev
+    # env_file:
+    #   - .env  # local dev
     environment:
       AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME}
       AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME}
