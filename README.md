@@ -4,6 +4,7 @@ This project provides a web-based system for managing and minimizing food waste 
 
 ---
 
+
 ## 🚀 Features
 
 - 🔐 **Authentication** – Secure login/logout for staff.
