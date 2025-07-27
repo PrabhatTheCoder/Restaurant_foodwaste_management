@@ -75,35 +75,25 @@ jobs:
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=POSTGRES_PASSWORD,Value=${{ secrets.POSTGRES_PASSWORD }} \
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=DATABASE_NAME,Value=${{ secrets.DATABASE_NAME }}
 
-      # -------- Wait until EB is Ready (avoid race condition) --------
-      - name: Wait for EB to be Ready
+      - name: Wait for EB to be Ready after env update
         run: |
-          echo "Waiting for EB environment to become Ready..."
           STATUS=$(aws elasticbeanstalk describe-environments \
             --environment-names ${{ secrets.EB_ENV_NAME }} \
             --query "Environments[0].Status" \
             --output text)
-
-          TIMEOUT=600  # 10 min max
-          ELAPSED=0
-          INTERVAL=20
-
-          while [ "$STATUS" != "Ready" ] && [ $ELAPSED -lt $TIMEOUT ]; do
-            echo "Current status: $STATUS. Retrying in $INTERVAL sec..."
-            sleep $INTERVAL
-            ELAPSED=$((ELAPSED + INTERVAL))
+          while [ "$STATUS" != "Ready" ]; do
+            echo "Waiting for EB Ready after env update... Current: $STATUS"
+            sleep 20
             STATUS=$(aws elasticbeanstalk describe-environments \
               --environment-names ${{ secrets.EB_ENV_NAME }} \
               --query "Environments[0].Status" \
               --output text)
           done
+          echo "EB Ready after env update."
+      
+      - name: Deploy to Elastic Beanstalk
+        run: eb deploy
 
-          if [ "$STATUS" != "Ready" ]; then
-            echo "ERROR: EB not ready after $TIMEOUT seconds"
-            exit 1
-          fi
-
-          echo "EB is Ready. Proceeding with deploy."
 
       # -------- Deploy application --------
       - name: Zip source code
