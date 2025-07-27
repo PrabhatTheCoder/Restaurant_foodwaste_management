@@ -7,16 +7,12 @@ on:
     branches: [main]
 
 jobs:
+  # ---------------------------
+  # 1. TEST JOB (CI)
+  # ---------------------------
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    env:
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_DB: ${{ secrets.DATABASE_NAME }}
-      AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
-      AWS_S3_REGION_NAME: ${{ secrets.AWS_S3_REGION_NAME }}
 
     steps:
       - name: Checkout code
@@ -28,8 +24,7 @@ jobs:
       - name: Install Docker Compose
         run: sudo apt-get update && sudo apt-get install -y docker-compose
 
-      # Pass secrets to docker-compose for build/test
-      - name: Build docker images
+      - name: Build Docker images with secrets
         run: |
           POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
@@ -47,6 +42,9 @@ jobs:
           AWS_S3_REGION_NAME=${{ secrets.AWS_S3_REGION_NAME }} \
           docker-compose run --rm web sh -c "python manage.py migrate --noinput && python manage.py test"
 
+  # ---------------------------
+  # 2. DEPLOY JOB (CD)
+  # ---------------------------
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -63,7 +61,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # Sync secrets to EB environment
+      # Update EB environment variables
       - name: Update EB environment variables
         run: |
           aws elasticbeanstalk update-environment \
@@ -75,7 +73,7 @@ jobs:
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=POSTGRES_PASSWORD,Value=${{ secrets.POSTGRES_PASSWORD }} \
               Namespace=aws:elasticbeanstalk:application:environment,OptionName=DATABASE_NAME,Value=${{ secrets.DATABASE_NAME }}
 
-      - name: Zip source code for deployment
+      - name: Zip source code
         run: zip -r deploy.zip .
 
       - name: Install EB CLI
@@ -92,5 +90,4 @@ jobs:
           eb use ${{ secrets.EB_ENV_NAME }}
 
       - name: Deploy to Elastic Beanstalk
-        run: |
-          eb deploy
+        run: eb deploy
